@@ -1,7 +1,7 @@
 name = "DEDataArrays"
 uuid = "754358af-613d-5f8d-9788-280bf1605d4c"
 authors = ["Chris Rackauckas <accounts@chrisrackauckas.com>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 ArrayInterface = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
