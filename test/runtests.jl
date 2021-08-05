@@ -21,17 +21,17 @@ Base.size(::Quaternion) = 4
 using DEDataArrays, OrdinaryDiffEq, StochasticDiffEq
 using StaticArrays, RecursiveArrayTools, LinearAlgebra, Test
 
-mutable struct VectorType{T} <: DEDataVector{T}
+mutable struct VectorType{T} <: DEDataArrays.DEDataVector{T}
     x::Vector{T}
     f::T
 end
 
-mutable struct MatrixType{T,S} <: DEDataMatrix{T}
+mutable struct MatrixType{T,S} <: DEDataArrays.DEDataMatrix{T}
     f::S
     x::Matrix{T}
 end
 
-mutable struct SimType2{T} <: DEDataVector{T}
+mutable struct SimType2{T} <: DEDataArrays.DEDataVector{T}
   x::Vector{T}
   y::Vector{T}
   u::Vector{T}
@@ -114,7 +114,7 @@ b .= b .^ 2 .+ a3
 @test (b .^ 2 .+ a3) isa MatrixType
 
 # Test ability to use MVectors in the solvers
-mutable struct SimWorkspace{T} <: DEDataVector{T}
+mutable struct SimWorkspace{T} <: DEDataArrays.DEDataVector{T}
   x::MVector{2,T}
   a::T
 end
@@ -123,7 +123,7 @@ similar(s0,Float64,size(s0))
 s1   = SimWorkspace{Float64}(MVector{2,Float64}(2.0,1.0),1.)
 s0 .+ s1 == SimWorkspace{Float64}(MVector{2,Float64}(3.0,5.0),1.)
 
-mutable struct SimWorkspace2{T} <: DEDataVector{T}
+mutable struct SimWorkspace2{T} <: DEDataArrays.DEDataVector{T}
   x::SVector{2,T}
   a::T
 end
@@ -133,7 +133,7 @@ s0 .+ s1 == SimWorkspace2{Float64}(SVector{2,Float64}(3.0,5.0),1.)
 
 # Test `recursivecopy!` in immutable structures derived from `AbstractArrays`.
 # See issue #507.
-mutable struct SimWorkspace3{T} <: DEDataVector{T}
+mutable struct SimWorkspace3{T} <: DEDataArrays.DEDataVector{T}
     x::Vector{T}
     q::Quaternion{T}
 end
@@ -158,7 +158,7 @@ DEDataArrays.copy_fields!(b, a)
 @test b.q.q2 == a.q.q2
 @test b.q.q3 == a.q.q3
 
-mutable struct SimType{T} <: DEDataVector{T}
+mutable struct SimType{T} <: DEDataArrays.DEDataVector{T}
     x::Array{T,1}
     f1::T
 end
@@ -230,7 +230,7 @@ sol = solve(prob,Tsit5(),callback = cbs_oop, tstops=tstop)
 AA = SMatrix{2,2}([0 1;
                    0 0])
 
-mutable struct MyStruct{T} <: DEDataVector{T}
+mutable struct MyStruct{T} <: DEDataArrays.DEDataVector{T}
     x::MVector{2,T}
     a::SVector{2,T}
 end
@@ -490,7 +490,7 @@ end
   sol = solve(prob,Kvaerno3(autodiff=false),callback = cbs, tstops=tstop)
 end
 
-mutable struct CtrlSimTypeScalar{T,T2} <: DEDataVector{T}
+mutable struct CtrlSimTypeScalar{T,T2} <: DEDataArrays.DEDataVector{T}
     x::Vector{T}
     ctrl_x::T2 # controller state
     ctrl_u::T2 # controller output
