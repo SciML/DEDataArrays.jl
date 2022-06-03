@@ -184,3 +184,31 @@ between `DEDataArray`s and `ParameterizedFunction`s.
 
 DEDataArray is not a good idea. [This explains why](https://discourse.julialang.org/t/diffeqs-hybrid-continuous-discrete-system-periodic-callback/23791/19?u=chrisrackauckas). But, this repo will stay alive to keep it around for
 people who still want to use it.
+
+Note that in OrdinaryDiffEq v6.14.1 explicit support for DEDataArrays in FunctionMap was removed.
+PR: https://github.com/SciML/OrdinaryDiffEq.jl/pull/1680 
+
+To get support, evaluate the function:
+
+```julia
+function OrdinaryDiffEq.perform_step!(integrator,cache::OrdinaryDiffEq.FunctionMapCache,repeat_step=false)
+  OrdinaryDiffEq.@unpack u,uprev,dt,t,f,p = integrator
+  alg = OrdinaryDiffEq.unwrap_alg(integrator, nothing)
+  OrdinaryDiffEq.@unpack tmp = cache
+  if integrator.f != OrdinaryDiffEq.DiffEqBase.DISCRETE_INPLACE_DEFAULT &&
+     !(typeof(integrator.f) <: OrdinaryDiffEq.DiffEqBase.EvalFunc &&  integrator.f.f === OrdinaryDiffEq.DiffEqBase.DISCRETE_INPLACE_DEFAULT)
+    if OrdinaryDiffEq.FunctionMap_scale_by_time(alg)
+      f(tmp, uprev, p, t+dt)
+      OrdinaryDiffEq.@muladd OrdinaryDiffEq.@.. broadcast=false u = uprev + dt*tmp
+    else
+      f(u,uprev,p,t+dt)
+    end
+    integrator.destats.nf += 1
+    if typeof(u) <: DEDataArrays.DEDataArray # Needs to get the fields, since updated uprev
+      DEDataArrays.copy_fields!(u,uprev)
+    end
+  end
+end  
+```
+
+at your own risk.
