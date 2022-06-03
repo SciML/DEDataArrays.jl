@@ -337,6 +337,25 @@ ode_prob = ODEProblem(open_loop, initial_conditions, time_span, nothing)
 
 sol = solve(ode_prob, Tsit5(), reltol=1e-8, abstol=1e-8)
 
+function OrdinaryDiffEq.perform_step!(integrator,cache::OrdinaryDiffEq.FunctionMapCache,repeat_step=false)
+  OrdinaryDiffEq.@unpack u,uprev,dt,t,f,p = integrator
+  alg = OrdinaryDiffEq.unwrap_alg(integrator, nothing)
+  OrdinaryDiffEq.@unpack tmp = cache
+  if integrator.f != OrdinaryDiffEq.DiffEqBase.DISCRETE_INPLACE_DEFAULT &&
+     !(typeof(integrator.f) <: OrdinaryDiffEq.DiffEqBase.EvalFunc &&  integrator.f.f === OrdinaryDiffEq.DiffEqBase.DISCRETE_INPLACE_DEFAULT)
+    if OrdinaryDiffEq.FunctionMap_scale_by_time(alg)
+      f(tmp, uprev, p, t+dt)
+      OrdinaryDiffEq.@muladd OrdinaryDiffEq.@.. broadcast=false u = uprev + dt*tmp
+    else
+      f(u,uprev,p,t+dt)
+    end
+    integrator.destats.nf += 1
+    if typeof(u) <: DEDataArrays.DEDataArray # Needs to get the fields, since updated uprev
+      DEDataArrays.copy_fields!(u,uprev)
+    end
+  end
+end  
+
 @testset "DEDataVector" begin
   f = function (du,u,p,t)
     du[1] = -0.5*u[1] + u.f1
@@ -398,6 +417,7 @@ sol = solve(ode_prob, Tsit5(), reltol=1e-8, abstol=1e-8)
 
   input = (x,p,t)->(1*one(t)≤t≤2*one(t) ? [one(t)] : [zero(t)])
   prob = DiscreteProblem((dx,x,p,t)->mysystem(t,x,dx,p,input), SimType2(fill(0., 3), fill(0., 1), fill(0., 1)), (0//1,4//1))
+          
   sln = solve(prob, FunctionMap(scale_by_time=false), dt = 1//10)
 
   u1 = [sln[idx].u for idx in 1:length(sln)]
