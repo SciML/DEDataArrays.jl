@@ -11,9 +11,9 @@ using DocStringExtensions
 """
 $(TYPEDEF)
 """
-abstract type DEDataArray{T,N} <: AbstractArray{T,N} end
-const DEDataVector{T} = DEDataArray{T,1}
-const DEDataMatrix{T} = DEDataArray{T,2}
+abstract type DEDataArray{T, N} <: AbstractArray{T, N} end
+const DEDataVector{T} = DEDataArray{T, 1}
+const DEDataMatrix{T} = DEDataArray{T, 2}
 
 # iteration
 Base.iterate(A::DEDataArray) = iterate(A.x)
@@ -47,22 +47,28 @@ Base.copy(A::DEDataArray) = deepcopy(A)
 end
 
 # similar data arrays
-@generated function Base.similar(A::DEDataArray, ::Type{T}, dims::NTuple{N,Int}) where {T,N}
-    assignments = [s == :x ? :(typeof(A.x) <: StaticArrays.StaticArray ? similar(A.x, T, StaticArrays.Size(A.x)) : similar(A.x, T, dims)) :
+@generated function Base.similar(A::DEDataArray, ::Type{T},
+                                 dims::NTuple{N, Int}) where {T, N}
+    assignments = [s == :x ?
+                   :(typeof(A.x) <: StaticArrays.StaticArray ?
+                     similar(A.x, T, StaticArrays.Size(A.x)) : similar(A.x, T, dims)) :
                    (sq = Meta.quot(s); :(deepcopy(getfield(A, $sq))))
                    for s in fieldnames(A)]
     :(SciMLBase.parameterless_type(A)($(assignments...)))
 end
 
 @generated function Base.similar(A::DEDataArray, ::Type{T}) where {T}
-    assignments = [s == :x ? :(typeof(A.x) <: StaticArrays.StaticArray ? similar(A.x, T, StaticArrays.Size(A.x)) : similar(A.x, T)) :
+    assignments = [s == :x ?
+                   :(typeof(A.x) <: StaticArrays.StaticArray ?
+                     similar(A.x, T, StaticArrays.Size(A.x)) : similar(A.x, T)) :
                    (sq = Meta.quot(s); :(deepcopy(getfield(A, $sq))))
                    for s in fieldnames(A)]
     :(SciMLBase.parameterless_type(A)($(assignments...)))
 end
 
 @generated function Base.similar(A::DEDataArray) where {T}
-    assignments = [s == :x ? :(typeof(A.x) <: StaticArrays.StaticArray ? similar(A.x) : similar(A.x)) :
+    assignments = [s == :x ?
+                   :(typeof(A.x) <: StaticArrays.StaticArray ? similar(A.x) : similar(A.x)) :
                    (sq = Meta.quot(s); :(deepcopy(getfield(A, $sq))))
                    for s in fieldnames(A)]
     :(SciMLBase.parameterless_type(A)($(assignments...)))
@@ -73,22 +79,24 @@ end
 
 Recursively copy fields of `src` to `dest`.
 """
-@generated function RecursiveArrayTools.recursivecopy!(dest::T, src::T) where {T<:DEDataArray}
+@generated function RecursiveArrayTools.recursivecopy!(dest::T,
+                                                       src::T) where {T <: DEDataArray}
     fields = fieldnames(src)
 
     expressions = Vector{Expr}(undef, length(fields))
 
-    @inbounds for i = 1:length(fields)
-        f  = fields[i]
+    @inbounds for i in 1:length(fields)
+        f = fields[i]
         Tf = src.types[i]
         qf = Meta.quot(f)
 
         if !ArrayInterface.ismutable(Tf)
-            expressions[i] = :( dest.$f = getfield( src, $qf ) )
+            expressions[i] = :(dest.$f = getfield(src, $qf))
         elseif Tf <: AbstractArray
-            expressions[i] = :( RecursiveArrayTools.recursivecopy!(dest.$f, getfield( src, $qf ) ) )
+            expressions[i] = :(RecursiveArrayTools.recursivecopy!(dest.$f,
+                                                                  getfield(src, $qf)))
         else
-            expressions[i] = :( dest.$f = deepcopy( getfield( src, $qf ) ) )
+            expressions[i] = :(dest.$f = deepcopy(getfield(src, $qf)))
         end
     end
 
@@ -113,26 +121,27 @@ value in `src`. Arrays are recursively copied.
     :(SciMLBase.parameterless_type(template)($(assignments...)))
 end
 
-@generated function copy_fields!(dest::T, src::T2) where
-    {T<:DEDataArray,T2<:DEDataArray}
-
+@generated function copy_fields!(dest::T,
+                                 src::T2) where
+    {T <: DEDataArray, T2 <: DEDataArray}
     fields = fieldnames(src)
 
     expressions = Vector{Expr}(undef, length(fields))
 
-    @inbounds for i = 1:length(fields)
-        f  = fields[i]
+    @inbounds for i in 1:length(fields)
+        f = fields[i]
         Tf = src.types[i]
         qf = Meta.quot(f)
 
         if f == :x
-            expressions[i] = :( )
+            expressions[i] = :()
         elseif !ArrayInterface.ismutable(Tf)
-            expressions[i] = :( dest.$f = getfield( src, $qf ) )
+            expressions[i] = :(dest.$f = getfield(src, $qf))
         elseif Tf <: AbstractArray
-            expressions[i] = :( RecursiveArrayTools.recursivecopy!(dest.$f, getfield( src, $qf ) ) )
+            expressions[i] = :(RecursiveArrayTools.recursivecopy!(dest.$f,
+                                                                  getfield(src, $qf)))
         else
-            expressions[i] = :( dest.$f = deepcopy( getfield( src, $qf ) ) )
+            expressions[i] = :(dest.$f = deepcopy(getfield(src, $qf)))
         end
     end
 
@@ -141,25 +150,39 @@ end
 
 ################# Overloads for stiff solvers ##################################
 
-LinearAlgebra.ldiv!(A::DEDataArray,F::Factorization, B::DEDataArray) = ldiv!(A.x,F,B.x)
+LinearAlgebra.ldiv!(A::DEDataArray, F::Factorization, B::DEDataArray) = ldiv!(A.x, F, B.x)
 LinearAlgebra.ldiv!(F::Factorization, B::DEDataArray) = ldiv!(F, B.x)
-LinearAlgebra.ldiv!(F::Factorization,A::Base.ReshapedArray{T1,T2,T3,T4}) where {T1,T2,T3<:DEDataArray,T4} = ldiv!(F,vec(A.parent.x))
-Base.:+(::LinearAlgebra.UniformScaling,x::DEDataArray) = copy_fields(I + x.x,x)
+function LinearAlgebra.ldiv!(F::Factorization,
+                             A::Base.ReshapedArray{T1, T2, T3, T4}) where {T1, T2,
+                                                                           T3 <:
+                                                                           DEDataArray, T4}
+    ldiv!(F, vec(A.parent.x))
+end
+Base.:+(::LinearAlgebra.UniformScaling, x::DEDataArray) = copy_fields(I + x.x, x)
 
-Base.unsafe_convert(::Type{Ptr{T}}, a::DEDataArray{T}) where {T} = Base.unsafe_convert(Ptr{T}, getfield(a,:x))
+function Base.unsafe_convert(::Type{Ptr{T}}, a::DEDataArray{T}) where {T}
+    Base.unsafe_convert(Ptr{T}, getfield(a, :x))
+end
 ArrayInterface.zeromatrix(x::DEDataArray) = ArrayInterface.zeromatrix(x.x)
 
 ################# Broadcast ####################################################
 
 const DEDataArrayStyle = Broadcast.ArrayStyle{DEDataArray}
 Base.BroadcastStyle(::Type{<:DEDataArray}) = Broadcast.ArrayStyle{DEDataArray}()
-Base.BroadcastStyle(::Broadcast.ArrayStyle{DEDataArray},::Broadcast.ArrayStyle) = Broadcast.ArrayStyle{DEDataArray}()
-Base.BroadcastStyle(::Broadcast.ArrayStyle,::Broadcast.ArrayStyle{DEDataArray}) = Broadcast.ArrayStyle{DEDataArray}()
-Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{DEDataArray}},::Type{ElType}) where ElType = similar(find_dedata(bc))
+function Base.BroadcastStyle(::Broadcast.ArrayStyle{DEDataArray}, ::Broadcast.ArrayStyle)
+    Broadcast.ArrayStyle{DEDataArray}()
+end
+function Base.BroadcastStyle(::Broadcast.ArrayStyle, ::Broadcast.ArrayStyle{DEDataArray})
+    Broadcast.ArrayStyle{DEDataArray}()
+end
+function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{DEDataArray}},
+                      ::Type{ElType}) where {ElType}
+    similar(find_dedata(bc))
+end
 
 find_dedata(bc::Base.Broadcast.Broadcasted) = find_dedata(bc.args)
 function find_dedata(args::Tuple)
-  !isempty(args) && find_dedata(find_dedata(args[1]), Base.tail(args))
+    !isempty(args) && find_dedata(find_dedata(args[1]), Base.tail(args))
 end
 find_dedata(x) = x
 find_dedata(a::DEDataArray, rest) = a
@@ -171,8 +194,12 @@ find_dedata(::Any, rest) = find_dedata(rest)
 end
 
 # drop DEData part
-@inline unpack(bc::Broadcast.Broadcasted{Style}) where Style = Broadcast.Broadcasted{Style}(bc.f, unpack_args(bc.args))
-@inline unpack(bc::Broadcast.Broadcasted{DEDataArrayStyle}) = Broadcast.Broadcasted(bc.f, unpack_args(bc.args))
+@inline function unpack(bc::Broadcast.Broadcasted{Style}) where {Style}
+    Broadcast.Broadcasted{Style}(bc.f, unpack_args(bc.args))
+end
+@inline function unpack(bc::Broadcast.Broadcasted{DEDataArrayStyle})
+    Broadcast.Broadcasted(bc.f, unpack_args(bc.args))
+end
 unpack(x) = x
 unpack(x::DEDataArray) = x.x
 
