@@ -50,7 +50,7 @@ end
 @generated function Base.similar(A::DEDataArray, ::Type{T},
                                  dims::NTuple{N, Int}) where {T, N}
     assignments = [s == :x ?
-                   :(typeof(A.x) <: StaticArrays.StaticArray ?
+                   :(A.x isa StaticArrays.StaticArray ?
                      similar(A.x, T, StaticArrays.Size(A.x)) : similar(A.x, T, dims)) :
                    (sq = Meta.quot(s); :(deepcopy(getfield(A, $sq))))
                    for s in fieldnames(A)]
@@ -59,7 +59,7 @@ end
 
 @generated function Base.similar(A::DEDataArray, ::Type{T}) where {T}
     assignments = [s == :x ?
-                   :(typeof(A.x) <: StaticArrays.StaticArray ?
+                   :(A.x isa StaticArrays.StaticArray ?
                      similar(A.x, T, StaticArrays.Size(A.x)) : similar(A.x, T)) :
                    (sq = Meta.quot(s); :(deepcopy(getfield(A, $sq))))
                    for s in fieldnames(A)]
@@ -68,7 +68,7 @@ end
 
 @generated function Base.similar(A::DEDataArray) where {T}
     assignments = [s == :x ?
-                   :(typeof(A.x) <: StaticArrays.StaticArray ? similar(A.x) : similar(A.x)) :
+                   :(A.x isa StaticArrays.StaticArray ? similar(A.x) : similar(A.x)) :
                    (sq = Meta.quot(s); :(deepcopy(getfield(A, $sq))))
                    for s in fieldnames(A)]
     :(SciMLBase.parameterless_type(A)($(assignments...)))

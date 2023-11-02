@@ -348,7 +348,7 @@ function OrdinaryDiffEq.perform_step!(integrator, cache::OrdinaryDiffEq.Function
     alg = OrdinaryDiffEq.unwrap_alg(integrator, nothing)
     OrdinaryDiffEq.@unpack tmp = cache
     if integrator.f != OrdinaryDiffEq.DiffEqBase.DISCRETE_INPLACE_DEFAULT &&
-       !(typeof(integrator.f) <: OrdinaryDiffEq.DiffEqBase.EvalFunc &&
+       !(integrator.f isa OrdinaryDiffEq.DiffEqBase.EvalFunc &&
          integrator.f.f === OrdinaryDiffEq.DiffEqBase.DISCRETE_INPLACE_DEFAULT)
         if OrdinaryDiffEq.FunctionMap_scale_by_time(alg)
             f(tmp, uprev, p, t + dt)
@@ -357,7 +357,7 @@ function OrdinaryDiffEq.perform_step!(integrator, cache::OrdinaryDiffEq.Function
             f(u, uprev, p, t + dt)
         end
         integrator.destats.nf += 1
-        if typeof(u) <: DEDataArrays.DEDataArray # Needs to get the fields, since updated uprev
+        if u isa DEDataArrays.DEDataArray # Needs to get the fields, since updated uprev
             DEDataArrays.copy_fields!(u, uprev)
         end
     end
