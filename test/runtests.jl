@@ -171,7 +171,7 @@ end
 
 function f(u, p, t) # new out-of-place definition
     SimType([-0.5 * u[1] + u.f1,
-                -0.5 * u[2]], u.f1)
+            -0.5 * u[2]], u.f1)
 end
 
 function f!(du, u, p, t) # old in-place definition
@@ -318,7 +318,7 @@ prob2 = SDEProblem(f, g, u0, (0.0, 10.0))
 # this creates an error
 
 sol = solve(prob2, callback = cbs, tstops = tstop, EM(), dt = dt,
-            saveat = collect(8:0.1:10))
+    saveat = collect(8:0.1:10))
 
 # https://github.com/JuliaDiffEq/DiffEqBase.jl/issues/327
 
@@ -343,7 +343,7 @@ ode_prob = ODEProblem(open_loop, initial_conditions, time_span, nothing)
 sol = solve(ode_prob, Tsit5(), reltol = 1e-8, abstol = 1e-8)
 
 function OrdinaryDiffEq.perform_step!(integrator, cache::OrdinaryDiffEq.FunctionMapCache,
-                                      repeat_step = false)
+        repeat_step = false)
     OrdinaryDiffEq.@unpack u, uprev, dt, t, f, p = integrator
     alg = OrdinaryDiffEq.unwrap_alg(integrator, nothing)
     OrdinaryDiffEq.@unpack tmp = cache
@@ -425,8 +425,8 @@ end
 
     input = (x, p, t) -> (1 * one(t) ≤ t ≤ 2 * one(t) ? [one(t)] : [zero(t)])
     prob = DiscreteProblem((dx, x, p, t) -> mysystem(t, x, dx, p, input),
-                           SimType2(fill(0.0, 3), fill(0.0, 1), fill(0.0, 1)),
-                           (0 // 1, 4 // 1))
+        SimType2(fill(0.0, 3), fill(0.0, 1), fill(0.0, 1)),
+        (0 // 1, 4 // 1))
 
     sln = solve(prob, FunctionMap(scale_by_time = false), dt = 1 // 10)
 

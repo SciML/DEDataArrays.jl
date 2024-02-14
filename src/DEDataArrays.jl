@@ -48,7 +48,7 @@ end
 
 # similar data arrays
 @generated function Base.similar(A::DEDataArray, ::Type{T},
-                                 dims::NTuple{N, Int}) where {T, N}
+        dims::NTuple{N, Int}) where {T, N}
     assignments = [s == :x ?
                    :(A.x isa StaticArrays.StaticArray ?
                      similar(A.x, T, StaticArrays.Size(A.x)) : similar(A.x, T, dims)) :
@@ -80,7 +80,7 @@ end
 Recursively copy fields of `src` to `dest`.
 """
 @generated function RecursiveArrayTools.recursivecopy!(dest::T,
-                                                       src::T) where {T <: DEDataArray}
+        src::T) where {T <: DEDataArray}
     fields = fieldnames(src)
 
     expressions = Vector{Expr}(undef, length(fields))
@@ -94,7 +94,7 @@ Recursively copy fields of `src` to `dest`.
             expressions[i] = :(dest.$f = getfield(src, $qf))
         elseif Tf <: AbstractArray
             expressions[i] = :(RecursiveArrayTools.recursivecopy!(dest.$f,
-                                                                  getfield(src, $qf)))
+                getfield(src, $qf)))
         else
             expressions[i] = :(dest.$f = deepcopy(getfield(src, $qf)))
         end
@@ -122,8 +122,8 @@ value in `src`. Arrays are recursively copied.
 end
 
 @generated function copy_fields!(dest::T,
-                                 src::T2) where
-    {T <: DEDataArray, T2 <: DEDataArray}
+        src::T2) where
+        {T <: DEDataArray, T2 <: DEDataArray}
     fields = fieldnames(src)
 
     expressions = Vector{Expr}(undef, length(fields))
@@ -139,7 +139,7 @@ end
             expressions[i] = :(dest.$f = getfield(src, $qf))
         elseif Tf <: AbstractArray
             expressions[i] = :(RecursiveArrayTools.recursivecopy!(dest.$f,
-                                                                  getfield(src, $qf)))
+                getfield(src, $qf)))
         else
             expressions[i] = :(dest.$f = deepcopy(getfield(src, $qf)))
         end
@@ -153,9 +153,9 @@ end
 LinearAlgebra.ldiv!(A::DEDataArray, F::Factorization, B::DEDataArray) = ldiv!(A.x, F, B.x)
 LinearAlgebra.ldiv!(F::Factorization, B::DEDataArray) = ldiv!(F, B.x)
 function LinearAlgebra.ldiv!(F::Factorization,
-                             A::Base.ReshapedArray{T1, T2, T3, T4}) where {T1, T2,
-                                                                           T3 <:
-                                                                           DEDataArray, T4}
+        A::Base.ReshapedArray{T1, T2, T3, T4}) where {T1, T2,
+        T3 <:
+        DEDataArray, T4}
     ldiv!(F, vec(A.parent.x))
 end
 Base.:+(::LinearAlgebra.UniformScaling, x::DEDataArray) = copy_fields(I + x.x, x)
@@ -176,7 +176,7 @@ function Base.BroadcastStyle(::Broadcast.ArrayStyle, ::Broadcast.ArrayStyle{DEDa
     Broadcast.ArrayStyle{DEDataArray}()
 end
 function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{DEDataArray}},
-                      ::Type{ElType}) where {ElType}
+        ::Type{ElType}) where {ElType}
     similar(find_dedata(bc))
 end
 
