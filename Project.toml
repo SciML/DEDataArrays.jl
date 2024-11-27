@@ -14,7 +14,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 [compat]
 ArrayInterface = "6, 7"
 DocStringExtensions = "0.8, 0.9"
-RecursiveArrayTools = "2"
+RecursiveArrayTools = "2, 3"
 SciMLBase = "1, 2"
 StaticArrays = "1"
 julia = "1.6"
